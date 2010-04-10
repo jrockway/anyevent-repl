@@ -7,6 +7,8 @@ class AnyEvent::REPL {
     use AnyEvent::Handle;
     use AnyEvent::Subprocess;
     use AnyEvent::REPL::Backend;
+
+    use AnyEvent::REPL::Types qw(Handler);
     use feature 'switch';
 
     has 'plugins' => (
@@ -48,6 +50,7 @@ class AnyEvent::REPL {
         isa     => 'HashRef[HashRef]',
         default => sub { +{} },
         clearer => 'clear_response_handlers',
+        lazy    => 1,
         handles => {
             _push_response_handler   => 'set',
             _get_response_handler    => 'get',
@@ -62,6 +65,7 @@ class AnyEvent::REPL {
         isa     => 'ArrayRef[HashRef]',
         default => sub { [] },
         clearer => 'clear_requests',
+        lazy    => 1,
         handles => {
             _push_request            => 'push',
             _next_request            => 'shift',
@@ -122,7 +126,7 @@ class AnyEvent::REPL {
         $self->repl_pty->handle->push_write( $data );
     }
 
-    method push_eval(Str $code, CodeRef :$on_output?, CodeRef :$on_result, CodeRef :$on_error){
+    method push_eval(Str $code, CodeRef :$on_output?, Handler :$on_result, Handler :$on_error){
         $self->_push_request({
             token  => $self->get_id,
             code   => $code,
@@ -137,7 +141,6 @@ class AnyEvent::REPL {
     method _run_once {
         if($self->_no_handlers && !$self->_no_outstanding_requests){
             my $req = $self->_next_request;
-
             $self->_push_response_handler( $req->{token}, {
                 error  => $req->{error},
                 result => $req->{result},
@@ -214,6 +217,12 @@ class AnyEvent::REPL {
             $handler->{error}->('REPL process died; aborting');
         }
         $self->clear_response_handlers;
-        $self->_run_once;
+        $self->_run_once; # continue to run queued jobs with a new REPL
+    }
+
+    method kill(Int $sig? = 9) {
+        if($self->is_alive){
+            $self->repl->kill($sig);
+        }
     }
 }
