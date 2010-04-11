@@ -42,6 +42,7 @@ class AnyEvent::REPL::Terminal with MooseX::Runnable {
             my $input_pump  = pump $term, $self->input->pty->handle;
             my $cv = AnyEvent->condvar;
 
+            my $t;
             $self->input->push_readline( sub {
                 my $line = shift;
                 $term->push_write("\n");
@@ -60,9 +61,13 @@ class AnyEvent::REPL::Terminal with MooseX::Runnable {
                     on_error  => $cv,
                     on_result => $cv,
                 );
+
+                # kill the REPL if it seems locked up
+                $t = AnyEvent->timer( after => 2, cb => sub { $self->repl->kill(9) } );
             });
 
             $term->push_write($cv->recv);
+            undef $t;
         };
 
         $term->DEMOLISH; # safer than SMASH_WITH_HAMMER
