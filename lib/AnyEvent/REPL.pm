@@ -95,7 +95,9 @@ class AnyEvent::REPL {
 
                     my $response;
                     eval {
+                        local $SIG{USR1} = sub { die 'user interrupt' };
                         my @result = $repl->eval($request->{code});
+                        no warnings 'uninitialized';
                         if($repl->is_error($result[0])){
                             $response = {
                                 type  => 'error',
