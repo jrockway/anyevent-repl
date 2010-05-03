@@ -23,8 +23,8 @@ class AnyEvent::REPL::Loop with MooseX::Traits {
 
     method run_once {
         my $req = $self->frontend->read;
-        my $res;
 
+        my $res;
         try {
             my $type = $req->{type} || die 'need type';
             my $method = 'handle_'.$type;

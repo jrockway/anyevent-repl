@@ -18,7 +18,16 @@ class AnyEvent::REPL {
     has 'backend_plugins' => (
         is      => 'ro',
         isa     => 'ArrayRef',
-        default => sub { [qw/+Devel::REPL::Plugin::DDS +Devel::REPL::Plugin::LexEnv/] },
+        default => sub { [
+            '+Devel::REPL::Plugin::DDS',
+            '+Devel::REPL::Plugin::LexEnv',
+        ]},
+    );
+
+    has 'loop_traits' => (
+        is      => 'ro',
+        isa     => 'ArrayRef',
+        default => sub { [] },
     );
 
     has 'repl_job' => (
@@ -96,9 +105,10 @@ class AnyEvent::REPL {
                     pty => $args->{comm},
                 );
 
-                my $loop = AnyEvent::REPL::Loop->new(
-                    frontend => $frontend,
-                    backend   => $backend,
+                my $loop = AnyEvent::REPL::Loop->
+                  with_traits(@{$args->{loop_traits} || []})->new(
+                      frontend => $frontend,
+                      backend  => $backend,
                 );
 
                 $loop->run;
@@ -108,6 +118,7 @@ class AnyEvent::REPL {
 
     method _build_repl {
         return $self->_start_repl({
+            loop_traits     => $self->loop_traits,
             backend_plugins => $self->backend_plugins,
         });
     }

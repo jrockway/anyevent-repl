@@ -11,5 +11,6 @@ requires 'IO::Stty';
 requires 'JSON';
 requires 'MooseX::Declare';
 requires 'MooseX::Types';
+requires 'MooseX::Traits' => '0.09';
 
 WriteAll;
