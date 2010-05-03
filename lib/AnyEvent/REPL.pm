@@ -108,7 +108,7 @@ class AnyEvent::REPL {
                 $backend->load_plugins(@{$args->{backend_plugins} || []});
 
                 my $frontend = AnyEvent::REPL::Frontend->new(
-                    pty => $args->{comm},
+                    fh => $args->{comm},
                 );
 
                 my $loop = AnyEvent::REPL::Loop->

@@ -3,14 +3,14 @@ use MooseX::Declare;
 class AnyEvent::REPL::Frontend with Devel::REPL::Frontend::API {
     use JSON;
 
-    has 'pty' => (
+    has 'fh' => (
         is       => 'ro',
         isa      => 'GlobRef',
         required => 1,
     );
 
     method read {
-        my $fh = $self->pty;
+        my $fh = $self->fh;
 
         my $request_json = <$fh>;
         return if !$request_json;
@@ -20,6 +20,7 @@ class AnyEvent::REPL::Frontend with Devel::REPL::Frontend::API {
     }
 
     method print(Ref $response) {
-        syswrite $self->pty, encode_json $response;
+        my $result = encode_json $response;
+        syswrite $self->fh, $result;
     }
 }
