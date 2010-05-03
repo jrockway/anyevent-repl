@@ -139,6 +139,17 @@ class AnyEvent::REPL {
         $self->_run_once;
     }
 
+    method push_command(Str $type, HashRef $args, Handler :$on_result, Handler :$on_error){
+        $self->_push_request({
+            token   => $self->get_id,
+            command => { %$args, type => $type },
+            result  => $on_result,
+            error   => $on_error,
+        });
+
+        $self->_run_once;
+    }
+
     method _run_once {
         if($self->_no_handlers && !$self->_no_outstanding_requests){
             my $req = $self->_next_request;
@@ -170,12 +181,19 @@ class AnyEvent::REPL {
                 $self->_handle_result($result);
             });
 
-            $self->repl_comm->handle->push_write( json => {
-                type  => 'eval',
-                token => $req->{token},
-                code  => $req->{code},
-            });
-
+            if($req->{code}){
+                $self->repl_comm->handle->push_write( json => {
+                    type  => 'eval',
+                    token => $req->{token},
+                    code  => $req->{code},
+                });
+            }
+            elsif($req->{command}){
+                $self->repl_comm->handle->push_write( json => {
+                    %{$req->{command}},
+                    token => $req->{token},
+                });
+            }
             $self->repl_comm->handle->push_write("\n");
         }
     }

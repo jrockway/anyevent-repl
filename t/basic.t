@@ -71,7 +71,21 @@ my $repl = AnyEvent::REPL->new;
         my $result = $done->recv;
     };
     like $@, qr/Compile error: syntax error at/, 'got error message';
+}
 
+{
+    # test arbitrary commands
+    my $done = AnyEvent->condvar;
+    $repl->push_command(
+        'OH_HAI', { args => 'go here' },
+        on_result => sub { $done->send( $_[0] ) },
+        on_error  => sub { $done->croak( $_[0] ) },
+    );
+
+    eval {
+        my $result = $done->recv;
+    };
+    like $@, qr/No handler for OH_HAI/, 'got error message';
 }
 
 done_testing;
