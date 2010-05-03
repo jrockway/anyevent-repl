@@ -86,12 +86,18 @@ class AnyEvent::REPL {
         },
     );
 
+    has 'capture_stderr' => (
+        is      => 'ro',
+        isa     => 'Bool',
+        default => 1,
+    );
+
     method _build_repl_job {
         my $job = AnyEvent::Subprocess->new(
             on_completion => sub { $self->_handle_exit },
             delegates     => [
                 'CommHandle',
-                { Pty => { stderr => 1 } },
+                { Pty => { stderr => $self->capture_stderr } },
             ],
             code => sub {
                 my $args = shift;
