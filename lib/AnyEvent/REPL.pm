@@ -21,6 +21,7 @@ class AnyEvent::REPL {
         default => sub { [
             '+Devel::REPL::Plugin::DDS',
             '+Devel::REPL::Plugin::LexEnv',
+            '+Devel::REPL::Plugin::Packages',
         ]},
     );
 
