@@ -33,7 +33,7 @@ class AnyEvent::REPL::Loop with MooseX::Traits {
             die "No handler for $type" unless
               $self->can($method);
 
-            $res = $self->$method($req);
+            $res = { type => 'success', result => scalar $self->$method($req) };
         }
         catch {
             $res = { type => 'error', error => $_ };
@@ -51,19 +51,10 @@ class AnyEvent::REPL::Loop with MooseX::Traits {
         };
 
         no warnings 'uninitialized';
-        my $response;
-        if ($self->backend->is_error($result[0])) {
-            $response = {
-                type  => 'error',
-                error => join '', $self->backend->format_error(@result),
-            };
-        }
-        else {
-            $response = {
-                type   => 'success',
-                result => join '', $self->backend->format_result(@result),
-            };
-        }
-        return $response;
+
+        die $self->backend->format_error(@result)
+          if $self->backend->is_error($result[0]);
+
+        return join '', $self->backend->format_result(@result);
     }
 }
