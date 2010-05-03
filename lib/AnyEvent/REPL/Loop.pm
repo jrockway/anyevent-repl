@@ -2,6 +2,7 @@ use MooseX::Declare;
 
 class AnyEvent::REPL::Loop with MooseX::Traits {
     use Try::Tiny;
+
     has 'frontend' => (
         is       => 'ro',
         isa      => 'AnyEvent::REPL::Frontend',
@@ -23,6 +24,7 @@ class AnyEvent::REPL::Loop with MooseX::Traits {
 
     method run_once {
         my $req = $self->frontend->read;
+        return unless $req;
 
         my $res;
         try {
