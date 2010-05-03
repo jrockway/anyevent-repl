@@ -82,13 +82,13 @@ class AnyEvent::REPL {
             on_completion => sub { $self->_handle_exit },
             delegates     => [
                 'CommHandle',
-                { Pty => { stderr => 0 } },
+                { Pty => { stderr => 1 } },
             ],
             code => sub {
                 my $args = shift;
                 IO::Stty::stty(\*STDIN, 'raw');
                 IO::Stty::stty(\*STDIN, '-echo');
-                eval {
+
                 my $backend = AnyEvent::REPL::Backend->new;
                 $backend->load_plugins(@{$args->{backend_plugins} || []});
 
@@ -102,8 +102,6 @@ class AnyEvent::REPL {
                 );
 
                 $loop->run;
-                };
-                if($@){ warn "OH NOES: $@"; exit 0 };
             },
         );
     }
