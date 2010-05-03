@@ -1,17 +1,21 @@
 use MooseX::Declare;
 
 class AnyEvent::REPL {
-    use JSON::XS;
-
     use AnyEvent;
     use AnyEvent::Handle;
     use AnyEvent::Subprocess;
+
     use AnyEvent::REPL::Backend;
+    use AnyEvent::REPL::Frontend;
+    use AnyEvent::REPL::Loop;
+
+    use IO::Stty;
+    use JSON::XS;
 
     use AnyEvent::REPL::Types qw(Handler);
     use feature 'switch';
 
-    has 'plugins' => (
+    has 'backend_plugins' => (
         is      => 'ro',
         isa     => 'ArrayRef',
         default => sub { [qw/+Devel::REPL::Plugin::DDS +Devel::REPL::Plugin::LexEnv/] },
@@ -78,51 +82,37 @@ class AnyEvent::REPL {
             on_completion => sub { $self->_handle_exit },
             delegates     => [
                 'CommHandle',
-                { Pty => { stderr => 1 } },
+                { Pty => { stderr => 0 } },
             ],
             code => sub {
                 my $args = shift;
-                `stty raw -echo`;
+                IO::Stty::stty(\*STDIN, 'raw');
+                IO::Stty::stty(\*STDIN, '-echo');
+                eval {
+                my $backend = AnyEvent::REPL::Backend->new;
+                $backend->load_plugins(@{$args->{backend_plugins} || []});
 
-                my $repl = AnyEvent::REPL::Backend->new;
-                $repl->load_plugins(@{$args->{plugins} || []});
+                my $frontend = AnyEvent::REPL::Frontend->new(
+                    pty => $args->{comm},
+                );
 
-                my $comm = $args->{comm};
+                my $loop = AnyEvent::REPL::Loop->new(
+                    frontend => $frontend,
+                    backend   => $backend,
+                );
 
-                while( my $request_json = <$comm> ){
-                    chomp $request_json;
-                    my $request = decode_json $request_json;
-
-                    my $response;
-                    eval {
-                        local $SIG{USR1} = sub { die 'user interrupt' };
-                        my @result = $repl->eval($request->{code});
-                        no warnings 'uninitialized';
-                        if($repl->is_error($result[0])){
-                            $response = {
-                                type  => 'error',
-                                error => join '', $repl->format_error(@result),
-                            };
-                        }
-                        else {
-                            $response = {
-                                type   => 'success',
-                                result => join '', $repl->format_result(@result),
-                            };
-                        }
-                    };
-                    if( $@ ) {
-                        $response = { type => 'error', error => $@ };
-                    }
-
-                    $response->{token} = $request->{token};
-                    syswrite $comm, encode_json $response;
-                }
+                $loop->run;
+                };
+                if($@){ warn "OH NOES: $@"; exit 0 };
             },
         );
     }
 
-    method _build_repl { $self->_start_repl({ plugins => $self->plugins }) }
+    method _build_repl {
+        return $self->_start_repl({
+            backend_plugins => $self->backend_plugins,
+        });
+    }
 
     method push_write(Str $data) {
         $self->repl_pty->handle->push_write( $data );
@@ -172,6 +162,7 @@ class AnyEvent::REPL {
             });
 
             $self->repl_comm->handle->push_write( json => {
+                type  => 'eval',
                 token => $req->{token},
                 code  => $req->{code},
             });
