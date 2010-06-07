@@ -1,6 +1,6 @@
 use MooseX::Declare;
 
-class AnyEvent::REPL {
+class AnyEvent::REPL with AnyEvent::REPL::API {
     use AnyEvent;
     use AnyEvent::Handle;
     use AnyEvent::Subprocess;
