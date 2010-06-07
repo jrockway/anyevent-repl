@@ -13,4 +13,7 @@ requires 'MooseX::Declare';
 requires 'MooseX::Types';
 requires 'MooseX::Traits' => '0.09';
 
+requires 'Coro'; # for Coro-ized REPL
+requires 'Coro::Util::Rouse'; # for Coro-ized REPL
+
 WriteAll;
