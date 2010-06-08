@@ -11,9 +11,9 @@ my $repl = AnyEvent::REPL->new;
 my $wrapped = AnyEvent::REPL::CoroWrapper->new( repl => $repl );
 
 sub foo {
-    my $rand = $wrapped->eval_now('rand 10');
-    my $plus_two = $wrapped->eval_now("$rand + 2");
-    my $two = $wrapped->eval_now("$plus_two - $rand");
+    my $rand = $wrapped->do_eval('rand 10');
+    my $plus_two = $wrapped->do_eval("$rand + 2");
+    my $two = $wrapped->do_eval("$plus_two - $rand");
     return $two;
 }
 
@@ -28,7 +28,7 @@ is $a_coro->join, 2, 'first coro also worked';
 
 my $e_coro = async {
     return try {
-        $wrapped->eval_now('die "OH NOES"');
+        $wrapped->do_eval('die "OH NOES"');
         return { result => 'fail' };
     }
     catch {

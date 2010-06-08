@@ -1,18 +1,28 @@
 use MooseX::Declare;
 
-class AnyEvent::REPL::CoroWrapper with AnyEvent::REPL::API {
-    use AnyEvent::REPL::API;
-    use AnyEvent::REPL::Types qw(REPL);
+class AnyEvent::REPL::CoroWrapper
+  with (AnyEvent::REPL::API::Sync, AnyEvent::REPL::API::Async) {
+    use AnyEvent::REPL::Types qw(AsyncREPL);
     use Coro::Util::Rouse qw(rouse_cb rouse_wait);
 
     has 'repl' => (
         is       => 'ro',
-        isa      => REPL,
+        isa      => AsyncREPL,
         required => 1,
-        handles  => 'AnyEvent::REPL::API',
+        handles  => 'AnyEvent::REPL::API::Async',
     );
 
-    method eval_now(Str $code, CodeRef :$on_output?){
+    method do_command(Str $command, HashRef $args){
+        my ($ok, $err) = rouse_cb;
+        $self->push_command(
+            $command, $args,
+            on_result => $ok,
+            on_error  => $err,
+        );
+        return rouse_wait;
+    }
+
+    method do_eval(Str $code, CodeRef :$on_output?){
         my ($ok, $err) = rouse_cb;
         $self->push_eval(
             $code,
