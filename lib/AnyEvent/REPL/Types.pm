@@ -13,6 +13,11 @@ role_type SyncREPL, { role => 'AnyEvent::REPL::API::Sync' };
 
 subtype REPL, as SyncREPL|AsyncREPL; # useless?
 
+coerce SyncREPL, from AsyncREPL, via {
+    require AnyEvent::REPL::CoroWrapper;
+    return AnyEvent::REPL::CoroWrapper->new( repl => $_ );
+};
+
 subtype Handler, as CondVar|CodeRef;
 
 1;
